@@ -1,0 +1,51 @@
+/* ----------------------------------------------------------------
+	Custom CSS
+
+	Add all your Custom Styled CSS here for New Styles or
+	Overwriting Default Theme Styles for Better Handling Updates
+-----------------------------------------------------------------*/
+
+
+.cmd-logo-terminal {
+	font-family: 'Courier New', Courier, monospace;
+	font-weight: 700;
+	font-size: clamp(0.72rem, 1.1vw, 0.98rem);
+	line-height: 1;
+	white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+	letter-spacing: 0.01em;
+}
+
+.cmd-logo-terminal .cmd-logo-base {
+	color: #1f2430;
+}
+
+.cmd-logo-terminal .cmd-logo-accent,
+.cmd-logo-terminal .cmd-logo-cursor {
+	color: #ef4f5f;
+}
+
+.cmd-logo-terminal .cmd-logo-cursor {
+	animation: terminal-cursor-blink 1s step-start infinite;
+}
+
+@keyframes terminal-cursor-blink {
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0;
+	}
+}
+
+
+@media (max-width: 991.98px) {
+	.cmd-logo-terminal {
+		font-size: 0.66rem;
+	}
+}
+
