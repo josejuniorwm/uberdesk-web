@@ -1,15 +1,8 @@
 <?php
 
 /*-------------------------------------------------
-
 	Form Processor Plugin
 	by SemiColonWeb
-
----------------------------------------------------*/
-
-
-/*-------------------------------------------------
-	PHPMailer Initialization
 ---------------------------------------------------*/
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -17,91 +10,60 @@ use PHPMailer\PHPMailer\Exception;
 
 $vendorAutoload = __DIR__ . '/../vendor/autoload.php';
 
-if( file_exists( $vendorAutoload ) ) {
+if (file_exists($vendorAutoload)) {
 	require $vendorAutoload;
 } else {
 	require __DIR__ . '/phpmailer/src/Exception.php';
 	require __DIR__ . '/phpmailer/src/PHPMailer.php';
 	require __DIR__ . '/phpmailer/src/SMTP.php';
-}	
+}
 
 $allowed_origins = array(
 	'http://localhost:5500',
 	'http://127.0.0.1:5500',
+	'http://localhost',
+	'https://uberdesk.com.br',
+	'https://www.uberdesk.com.br'
 );
 
-if( isset( $_SERVER['HTTP_ORIGIN'] ) && in_array( $_SERVER['HTTP_ORIGIN'], $allowed_origins, true ) ) {
-	header( 'Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN'] );
-	header( 'Vary: Origin' );
+if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins, true)) {
+	header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+	header('Vary: Origin');
 }
 
-header( 'Access-Control-Allow-Methods: POST, OPTIONS' );
-header( 'Access-Control-Allow-Headers: Content-Type, X-Requested-With' );
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
 
-if( $_SERVER['REQUEST_METHOD'] === 'OPTIONS' ) {
-	header( 'Content-Type: application/json; charset=UTF-8' );
-	echo json_encode( array( 'alert' => 'info', 'message' => 'Preflight OK' ) );
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+	header('Content-Type: application/json; charset=UTF-8');
+	echo json_encode(array('alert' => 'info', 'message' => 'Preflight OK'));
 	exit;
 }
 
-
-/*-------------------------------------------------
-	Receiver's Email
----------------------------------------------------*/
-
 $toemails = array();
-
 $toemails[] = array(
 	'email' => 'contato@uberdesk.com.br',
 	'name' => 'UberDesk'
 );
-
-
-/*-------------------------------------------------
-	Sender's Email
----------------------------------------------------*/
 
 $fromemail = array(
 	'email' => 'contato@uberdesk.com.br',
 	'name' => 'UberDesk'
 );
 
-
-/*-------------------------------------------------
-	reCaptcha
----------------------------------------------------*/
-
-// Add this only if you use reCaptcha with your Contact Forms
-$recaptcha_secret = ''; // Your reCaptcha Secret
-
-
-/*-------------------------------------------------
-	hCaptcha
----------------------------------------------------*/
-
-// Add this only if you use hCaptcha with your Contact Forms
-$hcaptcha_secret = ''; // Your hCaptcha Secret
-
-
-/*-------------------------------------------------
-	PHPMailer Initialization
----------------------------------------------------*/
+$recaptcha_secret = '';
+$hcaptcha_secret = '';
 
 $mail = new PHPMailer();
-
-/* Add your SMTP Codes after this Line */
 
 $mail->SMTPDebug = 0;
 $mail->isSMTP();
 $mail->Host = 'mail.uberdesk.com.br';
 $mail->SMTPAuth = true;
 $mail->Username = 'contato@uberdesk.com.br';
-$mail->Password = 'X3.HWsOb?xGXE9Ha';
-$mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+$mail->Password = 'f?sVQetCf8N-rLAk';
+$mail->SMTPSecure = 'ssl';
 $mail->Port = 465;
-
-
-// End of SMTP
 
 $mail->SMTPOptions = array(
 	'ssl' => array(
@@ -111,35 +73,26 @@ $mail->SMTPOptions = array(
 	),
 );
 
-$mail->isHTML( true );
+$mail->isHTML(true);
 
-function form_json_response( $alert, $message ) {
-	header( 'Content-Type: application/json; charset=UTF-8' );
-	echo json_encode( array(
+function form_json_response($alert, $message)
+{
+	header('Content-Type: application/json; charset=UTF-8');
+	echo json_encode(array(
 		'alert' => $alert,
 		'message' => $message,
-	), JSON_UNESCAPED_UNICODE );
+	), JSON_UNESCAPED_UNICODE);
 	exit;
 }
 
-
-/*-------------------------------------------------
-	Form Messages
----------------------------------------------------*/
-
 $message = array(
-	'success'			=> 'Mensagem recebida com <strong>sucesso</strong>. Retornaremos em breve.',
-	'error'				=> 'Nao foi possivel enviar o e-mail no momento. Tente novamente em instantes.',
-	'error_bot'			=> 'Validacao anti-bot falhou. Tente novamente.',
-	'error_unexpected'	=> 'Ocorreu um erro inesperado. Tente novamente.',
-	'captcha_invalid'	=> 'Captcha invalido. Tente novamente.',
-	'captcha_error'		=> 'Captcha nao enviado. Tente novamente.'
+	'success' => 'Mensagem recebida com <strong>sucesso</strong>. Retornaremos em breve.',
+	'error' => 'Nao foi possivel enviar o e-mail no momento. Tente novamente em instantes.',
+	'error_bot' => 'Validacao anti-bot falhou. Tente novamente.',
+	'error_unexpected' => 'Ocorreu um erro inesperado. Tente novamente.',
+	'captcha_invalid' => 'Captcha invalido. Tente novamente.',
+	'captcha_error' => 'Captcha nao enviado. Tente novamente.'
 );
-
-
-/*-------------------------------------------------
-	SPAM Protection Settings
----------------------------------------------------*/
 
 $spam_keywords = array(
 	'viagra',
@@ -149,86 +102,68 @@ $spam_keywords = array(
 
 $allowed_urls = 1;
 
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
-/*-------------------------------------------------
-	Form Processor
----------------------------------------------------*/
+	$prefix = !empty($_POST['prefix']) ? $_POST['prefix'] : '';
+	$submits = $_POST;
+	$botpassed = false;
 
-if( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
+	$message_form = !empty($submits['message']) ? $submits['message'] : array();
+	$message['success'] = !empty($message_form['success']) ? $message_form['success'] : $message['success'];
+	$message['error'] = !empty($message_form['error']) ? $message_form['error'] : $message['error'];
+	$message['error_bot'] = !empty($message_form['error_bot']) ? $message_form['error_bot'] : $message['error_bot'];
+	$message['error_unexpected'] = !empty($message_form['error_unexpected']) ? $message_form['error_unexpected'] : $message['error_unexpected'];
+	$message['captcha_invalid'] = !empty($message_form['captcha_invalid']) ? $message_form['captcha_invalid'] : $message['captcha_invalid'];
+	$message['captcha_error'] = !empty($message_form['captcha_error']) ? $message_form['captcha_error'] : $message['captcha_error'];
 
-	$prefix		= !empty( $_POST['prefix'] ) ? $_POST['prefix'] : '';
-	$submits	= $_POST;
-	$botpassed	= false;
-
-
-	$message_form					= !empty( $submits['message'] ) ? $submits['message'] : array();
-	$message['success']				= !empty( $message_form['success'] ) ? $message_form['success'] : $message['success'];
-	$message['error']				= !empty( $message_form['error'] ) ? $message_form['error'] : $message['error'];
-	$message['error_bot']			= !empty( $message_form['error_bot'] ) ? $message_form['error_bot'] : $message['error_bot'];
-	$message['error_unexpected']	= !empty( $message_form['error_unexpected'] ) ? $message_form['error_unexpected'] : $message['error_unexpected'];
-	$message['captcha_invalid']	= !empty( $message_form['captcha_invalid'] ) ? $message_form['captcha_invalid'] : $message['captcha_invalid'];
-	$message['captcha_error']		= !empty( $message_form['captcha_error'] ) ? $message_form['captcha_error'] : $message['captcha_error'];
-
-
-	/*-------------------------------------------------
-		Bot Protection
-	---------------------------------------------------*/
-
-	if( isset( $submits[ $prefix . 'botcheck' ] ) ) {
+	if (isset($submits[$prefix . 'botcheck'])) {
 		$botpassed = true;
 	}
 
-	if( !empty( $submits[ $prefix . 'botcheck' ] ) ) {
+	if (!empty($submits[$prefix . 'botcheck'])) {
 		$botpassed = false;
 	}
 
-	if( $botpassed == false ) {
-		form_json_response( 'error', $message['error_bot'] );
+	if ($botpassed == false) {
+		form_json_response('error', $message['error_bot']);
 	}
 
-
-	/*-------------------------------------------------
-		SPAM Protection
-	---------------------------------------------------*/
-
-	function spam_keyword_check( $submitted, $spamwords ) {
-		if( is_array( $submitted ) ) {
+	function spam_keyword_check($submitted, $spamwords)
+	{
+		if (is_array($submitted)) {
 			return false;
 		}
-		if( !is_array( $spamwords ) ) $spamwords = array( $spamwords );
-		foreach( $spamwords as $spamstring ) {
-			if( ( $position = stripos( $submitted, $spamstring ) ) !== false ) return $position;
+		if (!is_array($spamwords))
+			$spamwords = array($spamwords);
+		foreach ($spamwords as $spamstring) {
+			if (($position = stripos($submitted, $spamstring)) !== false)
+				return $position;
 		}
 		return false;
 	}
 
-	function spam_url_check( $submitted ) {
-		if( is_array( $submitted ) ) {
+	function spam_url_check($submitted)
+	{
+		if (is_array($submitted)) {
 			return false;
 		}
 
 		$pattern = "/(http|https)\:\/\/(www\.)?[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?/";
 
-		if( preg_match_all( $pattern, $submitted, $urls ) ) {
+		if (preg_match_all($pattern, $submitted, $urls)) {
 			return count($urls);
 		}
 
 		return false;
 	}
 
-	foreach( $submits as $spam_submit ) {
-		if( spam_keyword_check( $spam_submit, $spam_keywords ) || spam_url_check( $spam_submit ) > $allowed_urls ) {
-			// A successful message is displayed to the submitter that makes him think that the Form has been sent so that he cannot modify the keywords to prevent SPAM
-			form_json_response( 'success', $message['success'] );
+	foreach ($submits as $spam_submit) {
+		if (spam_keyword_check($spam_submit, $spam_keywords) || spam_url_check($spam_submit) > $allowed_urls) {
+			form_json_response('success', $message['success']);
 		}
 	}
 
-
-	/*-------------------------------------------------
-		reCaptcha
-	---------------------------------------------------*/
-
-	if( isset( $submits['g-recaptcha-response'] ) && !isset( $submits['h-captcha-response'] ) ) {
+	if (isset($submits['g-recaptcha-response']) && !isset($submits['h-captcha-response'])) {
 
 		$recaptcha_data = array(
 			'secret' => $recaptcha_secret,
@@ -236,26 +171,21 @@ if( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
 		);
 
 		$recap_verify = curl_init();
-		curl_setopt( $recap_verify, CURLOPT_URL, "https://www.google.com/recaptcha/api/siteverify" );
-		curl_setopt( $recap_verify, CURLOPT_POST, true );
-		curl_setopt( $recap_verify, CURLOPT_POSTFIELDS, http_build_query( $recaptcha_data ) );
-		curl_setopt( $recap_verify, CURLOPT_SSL_VERIFYPEER, false );
-		curl_setopt( $recap_verify, CURLOPT_RETURNTRANSFER, true );
-		$recap_response = curl_exec( $recap_verify );
+		curl_setopt($recap_verify, CURLOPT_URL, "https://www.google.com/recaptcha/api/siteverify");
+		curl_setopt($recap_verify, CURLOPT_POST, true);
+		curl_setopt($recap_verify, CURLOPT_POSTFIELDS, http_build_query($recaptcha_data));
+		curl_setopt($recap_verify, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($recap_verify, CURLOPT_RETURNTRANSFER, true);
+		$recap_response = curl_exec($recap_verify);
 
-		$g_response = json_decode( $recap_response );
+		$g_response = json_decode($recap_response);
 
-		if ( $g_response->success !== true ) {
-			form_json_response( 'error', $message['captcha_invalid'] );
+		if ($g_response->success !== true) {
+			form_json_response('error', $message['captcha_invalid']);
 		}
 	}
 
-
-	/*-------------------------------------------------
-		hCaptcha
-	---------------------------------------------------*/
-
-	if( isset( $submits['h-captcha-response'] ) ) {
+	if (isset($submits['h-captcha-response'])) {
 
 		$hcaptcha_data = array(
 			'secret' => $hcaptcha_secret,
@@ -263,263 +193,267 @@ if( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
 		);
 
 		$hcap_verify = curl_init();
-		curl_setopt( $hcap_verify, CURLOPT_URL, "https://hcaptcha.com/siteverify" );
-		curl_setopt( $hcap_verify, CURLOPT_POST, true );
-		curl_setopt( $hcap_verify, CURLOPT_POSTFIELDS, http_build_query( $hcaptcha_data ) );
-		curl_setopt( $hcap_verify, CURLOPT_SSL_VERIFYPEER, false );
-		curl_setopt( $hcap_verify, CURLOPT_RETURNTRANSFER, true );
-		$hcap_response = curl_exec( $hcap_verify );
+		curl_setopt($hcap_verify, CURLOPT_URL, "https://hcaptcha.com/siteverify");
+		curl_setopt($hcap_verify, CURLOPT_POST, true);
+		curl_setopt($hcap_verify, CURLOPT_POSTFIELDS, http_build_query($hcaptcha_data));
+		curl_setopt($hcap_verify, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($hcap_verify, CURLOPT_RETURNTRANSFER, true);
+		$hcap_response = curl_exec($hcap_verify);
 
-		$h_response = json_decode( $hcap_response );
+		$h_response = json_decode($hcap_response);
 
-		if ( $h_response->success !== true ) {
-			form_json_response( 'error', $message['captcha_invalid'] );
+		if ($h_response->success !== true) {
+			form_json_response('error', $message['captcha_invalid']);
 		}
 	}
 
+	$template = !empty($submits['template']) ? $submits['template'] : 'html';
+	$html_title = !empty($submits['html_title']) ? $submits['html_title'] : 'Form Response';
+	$forcerecap = (!empty($submits['force_recaptcha']) && $submits['force_recaptcha'] != 'false') ? true : false;
+	$replyto = !empty($submits['replyto']) ? explode(',', $submits['replyto']) : false;
+	$replyto_e = !empty($submits[$prefix . 'email']) ? $submits[$prefix . 'email'] : '';
+	$replyto_n = !empty($submits[$prefix . 'name']) ? $submits[$prefix . 'name'] : '';
 
-	$template	= !empty( $submits['template'] ) ? $submits['template'] : 'html';
-	$html_title	= !empty( $submits['html_title'] ) ? $submits['html_title'] : 'Form Response';
-	$forcerecap	= ( !empty( $submits['force_recaptcha'] ) && $submits['force_recaptcha'] != 'false' ) ? true : false;
-	$replyto	= !empty( $submits['replyto'] ) ? explode( ',', $submits['replyto'] ) : false;
-	$replyto_e = !empty( $submits[ $prefix . 'email' ] ) ? $submits[ $prefix . 'email' ] : '';
-	$replyto_n = !empty( $submits[ $prefix . 'name' ] ) ? $submits[ $prefix . 'name' ] : '';
-
-	if( $forcerecap ) {
-		if( !isset( $submits['g-recaptcha-response'] ) ) {
-			form_json_response( 'error', $message['captcha_error'] );
+	if ($forcerecap) {
+		if (!isset($submits['g-recaptcha-response'])) {
+			form_json_response('error', $message['captcha_error']);
 		}
 	}
 
-	/*-------------------------------------------------
-		Auto-Responders
-	---------------------------------------------------*/
-
-	$autores	= ( !empty( $submits['autoresponder'] ) && $submits['autoresponder'] != 'false' ) ? true : false;
-	$ar_subject	= !empty( $submits['ar_subject'] ) ? $submits['ar_subject'] : 'Thanks for your Email';
-	$ar_title	= !empty( $submits['ar_title'] ) ? $submits['ar_title'] : 'Its so good to hear from You!';
-	$ar_message	= !empty( $submits['ar_message'] ) ? $submits['ar_message'] : 'Autoresponder Message';
+	$autores = true;
+	$ar_subject = !empty($submits['ar_subject']) ? $submits['ar_subject'] : 'Recebemos sua mensagem - UberDesk';
+	$ar_title = !empty($submits['ar_title']) ? $submits['ar_title'] : 'É muito bom falar com você!';
+	$ar_message = !empty($submits['ar_message']) ? $submits['ar_message'] : 'Recebemos o seu contato e nossa equipe de desenvolvedores retornará o mais breve possível com uma solução. Abaixo está uma cópia dos dados que você nos enviou:';
 
 	preg_match_all('#\{(.*?)\}#', $ar_message, $ar_matches);
-	if( !empty( $ar_matches[1] ) ) {
-		foreach( $ar_matches[1] as $ar_key => $ar_value ) {
-			$ar_message = str_replace( '{' . $ar_value . '}' , ( is_array($submits[ $ar_value ]) ? implode( ', ', $submits[ $ar_value ] ) : $submits[ $ar_value ] ), $ar_message );
+	if (!empty($ar_matches[1])) {
+		foreach ($ar_matches[1] as $ar_key => $ar_value) {
+			$ar_message = str_replace('{' . $ar_value . '}', (is_array($submits[$ar_value]) ? implode(', ', $submits[$ar_value]) : $submits[$ar_value]), $ar_message);
 		}
 	}
 
-	$ar_footer	= !empty( $submits['ar_footer'] ) ? $submits['ar_footer'] : 'Copyrights &copy; ' . date('Y') . ' <strong>SemiColonWeb</strong>. All Rights Reserved.';
+	$ar_footer = !empty($submits['ar_footer']) ? $submits['ar_footer'] : 'Copyrights &copy; ' . date('Y') . ' <strong>UberDesk</strong>. Todos os direitos reservados.';
 
-	$mail->Subject = !empty( $submits['subject'] ) ? $submits['subject'] : 'Form Response from your Website';
-	$mail->SetFrom( $fromemail['email'] , $fromemail['name'] );
+	$mail->Subject = !empty($submits['subject']) ? $submits['subject'] : 'Novo Contato - Site UberDesk';
+	$mail->SetFrom($fromemail['email'], $fromemail['name']);
 
-	if( !empty( $replyto ) ) {
-		if( count( $replyto ) > 1 ) {
-			$replyto_e = $submits[ $replyto[0] ];
-			$replyto_n = $submits[ $replyto[1] ];
-			$mail->AddReplyTo( $replyto_e , $replyto_n );
-		} elseif( count( $replyto ) == 1 ) {
-			$replyto_e = $submits[ $replyto[0] ];
-			$mail->AddReplyTo( $replyto_e );
+	if (!empty($replyto)) {
+		if (count($replyto) > 1) {
+			$replyto_e = $submits[$replyto[0]];
+			$replyto_n = $submits[$replyto[1]];
+			$mail->AddReplyTo($replyto_e, $replyto_n);
+		} elseif (count($replyto) == 1) {
+			$replyto_e = $submits[$replyto[0]];
+			$mail->AddReplyTo($replyto_e);
 		}
-	} elseif( !empty( $replyto_e ) ) {
-		$mail->AddReplyTo( $replyto_e, $replyto_n );
+	} elseif (!empty($replyto_e)) {
+		$mail->AddReplyTo($replyto_e, $replyto_n);
 	}
 
-	foreach( $toemails as $toemail ) {
-		$mail->AddAddress( $toemail['email'] , $toemail['name'] );
+	foreach ($toemails as $toemail) {
+		$mail->AddAddress($toemail['email'], $toemail['name']);
 	}
-
-	/*-------------------------------------------------
-		All Processing for Fields starting with
-		Underscore must be done before this line of code
-	---------------------------------------------------*/
 
 	$underscore = array();
 
-	foreach( $submits as $name => $value ) {
-		if( strpos($name, '_') === 0 ) {
+	foreach ($submits as $name => $value) {
+		if (strpos($name, '_') === 0) {
 			$underscore[] = $name;
 		}
 	}
 
-	$unsets = array( 'prefix', 'subject', 'replyto', 'template', 'html_title', 'message', 'autoresponder', 'ar_subject', 'ar_title', 'ar_message', 'ar_footer', $prefix . 'botcheck', 'g-recaptcha-response', 'h-captcha-response', 'force_recaptcha', $prefix . 'submit' );
+	$unsets = array('prefix', 'subject', 'replyto', 'template', 'html_title', 'message', 'autoresponder', 'ar_subject', 'ar_title', 'ar_message', 'ar_footer', $prefix . 'botcheck', 'g-recaptcha-response', 'h-captcha-response', 'force_recaptcha', $prefix . 'submit');
 
 	$unsets = $unsets + $underscore;
 
-	foreach( $unsets as $unset ) {
-		unset( $submits[ $unset ] );
+	foreach ($unsets as $unset) {
+		unset($submits[$unset]);
 	}
 
 	$fields = array();
 
-	foreach( $submits as $name => $value ) {
-		if( empty( $value ) ) {
+	foreach ($submits as $name => $value) {
+		if (empty($value)) {
 			continue;
 		}
 
-		$name = str_replace( $prefix , '', $name );
-		$name = function_exists('mb_convert_case') ? mb_convert_case( $name, MB_CASE_TITLE, "UTF-8" ) : ucwords($name);
+		$name = str_replace($prefix, '', $name);
+		$name = function_exists('mb_convert_case') ? mb_convert_case($name, MB_CASE_TITLE, "UTF-8") : ucwords($name);
 
-		if( is_array( $value ) ) {
-			$value = implode( ', ', $value );
+		if (is_array($value)) {
+			$value = implode(', ', $value);
 		}
 
-		$fields[$name] = nl2br( filter_var( $value, FILTER_SANITIZE_SPECIAL_CHARS ) );
+		$fields[$name] = nl2br(filter_var($value, FILTER_SANITIZE_SPECIAL_CHARS));
 	}
 
 	$files = $_FILES;
 
-	foreach( $files as $file => $filevalue ) {
-		if( is_array( $filevalue['name'] ) ) {
-			$filecount = count( $filevalue['name'] );
+	foreach ($files as $file => $filevalue) {
+		if (is_array($filevalue['name'])) {
+			$filecount = count($filevalue['name']);
 
-			for( $f = 0; $f < $filecount; $f++ ) {
-				if ( isset( $_FILES[ $file ] ) && $_FILES[ $file ]['error'][ $f ] == UPLOAD_ERR_OK ) {
+			for ($f = 0; $f < $filecount; $f++) {
+				if (isset($_FILES[$file]) && $_FILES[$file]['error'][$f] == UPLOAD_ERR_OK) {
 					$mail->IsHTML(true);
-					$mail->AddAttachment( $_FILES[ $file ]['tmp_name'][ $f ], $_FILES[ $file ]['name'][ $f ] );
+					$mail->AddAttachment($_FILES[$file]['tmp_name'][$f], $_FILES[$file]['name'][$f]);
 				}
 			}
 		} else {
-			if ( isset( $_FILES[ $file ] ) && $_FILES[ $file ]['error'] == UPLOAD_ERR_OK ) {
+			if (isset($_FILES[$file]) && $_FILES[$file]['error'] == UPLOAD_ERR_OK) {
 				$mail->IsHTML(true);
-				$mail->AddAttachment( $_FILES[ $file ]['tmp_name'], $_FILES[ $file ]['name'] );
+				$mail->AddAttachment($_FILES[$file]['tmp_name'], $_FILES[$file]['name']);
 			}
 		}
 	}
 
 	$response = array();
 
-	foreach( $fields as $fieldname => $fieldvalue ) {
-		if( $template == 'text' ) {
+	foreach ($fields as $fieldname => $fieldvalue) {
+		if ($template == 'text') {
 			$response[] = $fieldname . ': ' . $fieldvalue;
 		} else {
 			$fieldname = '<tr>
-								<td style="font-size: 16px; line-height: 24px; font-weight: bold; padding: 0 0 5px 0;" align="left">' . $fieldname . '</td>
-							</tr>';
+                                <td style="font-size: 16px; line-height: 24px; font-weight: bold; padding: 0 0 5px 0;" align="left">' . $fieldname . '</td>
+                            </tr>';
 			$fieldvalue = '<tr>
-								<td style="font-size: 16px; line-height: 24px; color: #777777; padding: 0 15px 30px 0;" align="left">' . $fieldvalue . '</td>
-							</tr>';
+                                <td style="font-size: 16px; line-height: 24px; color: #777777; padding: 0 15px 30px 0;" align="left">' . $fieldvalue . '</td>
+                            </tr>';
 			$response[] = $fieldname . $fieldvalue;
 		}
 	}
 
-	$referrer = $_SERVER['HTTP_REFERER'] ? '<br><br><br>This Form was submitted from: ' . $_SERVER['HTTP_REFERER'] : '';
+	$referrer = !empty($_SERVER['HTTP_REFERER']) ? '<br><br><br>This Form was submitted from: ' . $_SERVER['HTTP_REFERER'] : '';
 
 	$html_before = '<table border="0" cellpadding="0" cellspacing="0" height="100%" width="100%" bgcolor="#eeeeee" style="width: 100%; height: 100%; padding: 50px 0 50px 0;">
-				<tr>
-					<td align="center" valign="top">
-						<table border="0" cellpadding="0" cellspacing="0" width="84%" bgcolor="#ffffff" style="width: 84%;">
-							<tr>
-								<td align="center" valign="top">
-									';
+                <tr>
+                    <td align="center" valign="top">
+                        <table border="0" cellpadding="0" cellspacing="0" width="84%" bgcolor="#ffffff" style="width: 84%;">
+                            <tr>
+                                <td align="center" valign="top">
+                                    ';
 
 	$html_after = '</td>
-							</tr>
-						</table>
-					</td>
-				</tr>
-			</table>';
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>';
 
-	if( $template == 'text' ) {
-		$body = implode( "<br>", $response ) . $referrer;
+	if ($template == 'text') {
+		$body = implode("<br>", $response) . $referrer;
 	} else {
 		$html = $html_before . '<!-- / Header -->
-									<table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%;">
-										<tr>
-											<td style="padding: 30px 0 30px 0; border-bottom: solid 1px #eeeeee; font-size: 30px; font-weight: bold; text-decoration: none; color: #000000;" align="left">
-												' . $html_title . '
-											</td>
-										</tr>
-									</table>
+                                    <table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%;">
+                                        <tr>
+                                            <td style="padding: 30px 0 30px 0; border-bottom: solid 1px #eeeeee; font-size: 30px; font-weight: bold; text-decoration: none; color: #000000;" align="left">
+                                                ' . $html_title . '
+                                            </td>
+                                        </tr>
+                                    </table>
 
-									<!-- / Sub-Header -->
-									<table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%; padding: 60px 0 30px 0;"">
-										' . implode( '', $response ) . '
-									</table>
+                                    <!-- / Sub-Header -->
+                                    <table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%; padding: 60px 0 30px 0;">
+                                        ' . implode('', $response) . '
+                                    </table>
 
-									<!-- / Footer -->
-									<table border="0" cellpadding="0" cellspacing="0" width="100%" align="center">
-										<tr>
-											<td align="center">
-												<table border="0" cellpadding="0" cellspacing="0" width="84%" align="center" style="border-top: 1px solid #eeeeee; width: 84%;">
-													<tr>
-														<td style="color: #d5d5d5; text-align: center; font-size: 12px; padding: 30px 0 30px 0; line-height: 22px;">' . strip_tags( $referrer ) . '</td>
-													</tr>
-												</table>
-											</td>
-										</tr>
-									</table>
-									' . $html_after;
+                                    <!-- / Footer -->
+                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" align="center">
+                                        <tr>
+                                            <td align="center">
+                                                <table border="0" cellpadding="0" cellspacing="0" width="84%" align="center" style="border-top: 1px solid #eeeeee; width: 84%;">
+                                                    <tr>
+                                                        <td style="color: #d5d5d5; text-align: center; font-size: 12px; padding: 30px 0 30px 0; line-height: 22px;">' . strip_tags($referrer) . '</td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    ' . $html_after;
 
 		$body = $html;
 	}
 
-	if( $autores && !empty( $replyto_e ) ) {
+	if ($autores && !empty($replyto_e)) {
 		$autoresponder = new PHPMailer();
 
-		/* Add your Auto-Responder SMTP Codes after this Line */
+		$autoresponder->isSMTP();
+		$autoresponder->Host = 'mail.uberdesk.com.br';
+		$autoresponder->SMTPAuth = true;
+		$autoresponder->Username = 'contato@uberdesk.com.br';
+		$autoresponder->Password = 'f?sVQetCf8N-rLAk';
+		$autoresponder->SMTPSecure = 'ssl';
+		$autoresponder->Port = 465;
 
+		$autoresponder->SMTPOptions = array(
+			'ssl' => array(
+				'verify_peer' => false,
+				'verify_peer_name' => false,
+				'allow_self_signed' => true,
+			),
+		);
 
-		// End of Auto-Responder SMTP
-
-		$autoresponder->SetFrom( $fromemail['email'] , $fromemail['name'] );
-		if( !empty( $replyto_n ) ) {
-			$autoresponder->AddAddress( $replyto_e , $replyto_n );
+		$autoresponder->SetFrom($fromemail['email'], $fromemail['name']);
+		if (!empty($replyto_n)) {
+			$autoresponder->AddAddress($replyto_e, $replyto_n);
 		} else {
-			$autoresponder->AddAddress( $replyto_e );
+			$autoresponder->AddAddress($replyto_e);
 		}
 		$autoresponder->Subject = $ar_subject;
 
 		$ar_body = $html_before . '<!-- / Header -->
-					<table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%;">
-						<tr>
-							<td style="padding: 30px 0 30px 0; border-bottom: solid 1px #eeeeee; font-size: 30px; font-weight: bold; text-decoration: none; color: #000000;" align="left">
-								' . $ar_title . '
-							</td>
-						</tr>
-					</table>
+                    <table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%;">
+                        <tr>
+                            <td style="padding: 30px 0 30px 0; border-bottom: solid 1px #eeeeee; font-size: 30px; font-weight: bold; text-decoration: none; color: #000000;" align="left">
+                                ' . $ar_title . '
+                            </td>
+                        </tr>
+                    </table>
 
-					<!-- / Sub-Header -->
-					<table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%; padding: 60px 0 30px 0;"">
-						<tr>
-							<td style="font-size: 16px; line-height: 26px; color: #777777; padding: 0 15px 30px 0;" align="left">' . $ar_message . '</td>
-						</tr>
-					</table>
+                    <!-- / Sub-Header -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="84%" style="width: 84%; padding: 60px 0 30px 0;">
+                        <tr>
+                            <td style="font-size: 16px; line-height: 26px; color: #777777; padding: 0 15px 30px 0;" align="left">' . $ar_message . '</td>
+                        </tr>
+                    </table>
 
-					<!-- / Footer -->
-					<table border="0" cellpadding="0" cellspacing="0" width="100%" align="center">
-						<tr>
-							<td align="center">
-								<table border="0" cellpadding="0" cellspacing="0" width="84%" align="center" style="border-top: 1px solid #eeeeee; width: 84%;">
-									<tr>
-										<td style="color: #d5d5d5; text-align: center; font-size: 12px; padding: 30px 0 30px 0; line-height: 22px;">' . $ar_footer . '</td>
-									</tr>
-								</table>
-							</td>
-						</tr>
-					</table>
-					' . $html_after;
+                    <!-- / Footer -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" align="center">
+                        <tr>
+                            <td align="center">
+                                <table border="0" cellpadding="0" cellspacing="0" width="84%" align="center" style="border-top: 1px solid #eeeeee; width: 84%;">
+                                    <tr>
+                                        <td style="color: #d5d5d5; text-align: center; font-size: 12px; padding: 30px 0 30px 0; line-height: 22px;">' . $ar_footer . '</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    ' . $html_after;
 
-		$autoresponder->MsgHTML( $ar_body );
+		$autoresponder->MsgHTML($ar_body);
 		$autoresponder->CharSet = "UTF-8";
 	}
 
-	$mail->MsgHTML( $body );
+	$mail->MsgHTML($body);
 	$mail->CharSet = "UTF-8";
 	$sendEmail = $mail->Send();
 
-	if( $sendEmail == true ):
+	if ($sendEmail == true):
 
-		if( $autores && !empty( $replyto_e ) ) {
+		if ($autores && !empty($replyto_e)) {
 			$send_arEmail = $autoresponder->Send();
+
+			if ($send_arEmail == false) {
+				form_json_response('error', 'A mensagem principal foi, mas a cópia falhou: ' . $autoresponder->ErrorInfo);
+			}
 		}
 
-		form_json_response( 'success', $message['success'] );
+		form_json_response('success', $message['success']);
 	else:
-		form_json_response( 'error', $message['error'] . '<br><br><strong>Detalhes SMTP:</strong><br>' . $mail->ErrorInfo );
+		form_json_response('error', $message['error'] . '<br><br><strong>Detalhes SMTP:</strong><br>' . $mail->ErrorInfo);
 	endif;
 
 } else {
-	form_json_response( 'error', $message['error_unexpected'] );
+	form_json_response('error', $message['error_unexpected']);
 }
-

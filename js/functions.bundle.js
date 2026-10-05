@@ -6467,7 +6467,7 @@ if( typeof jQuery !== 'undefined' ) {
 								elLoader = element.attr('data-loader'),
 								elResult = element.find('.form-result'),
 								elRedirect = element.attr('data-redirect'),
-								defaultBtn, alertType;
+								alertType;
 
 							if( !elAlert ) {
 								elAlert = 'notify';
@@ -6494,9 +6494,12 @@ if( typeof jQuery !== 'undefined' ) {
 
 									elResult.hide();
 
+									// CORREÇÃO: Declaramos as variáveis aqui para que o success consiga acessá-las depois
+									var defaultBtn, defaultBtnText; 
+
 									if( elLoader == 'button' ) {
-										defaultBtn = jQuery(form).find('button');
-										defaultBtnText = defaultBtn.html();
+										var defaultBtn = jQuery(form).find('button');
+										var defaultBtnText = defaultBtn.html();
 
 										defaultBtn.html('<i class="bi-arrow-repeat icon-spin m-0"></i>');
 									} else {
